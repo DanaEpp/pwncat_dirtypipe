@@ -1,4 +1,5 @@
 # pwncat_dirtypipe
+[![asciicast](https://asciinema.org/a/UGXf1HIBdOU7Hrl4an8dO6HXJ.svg)](https://asciinema.org/a/UGXf1HIBdOU7Hrl4an8dO6HXJ)
 pwncat module that automatically exploits CVE-2022-0847 (dirtypipe)
 ## Introduction
 The purpose of this module is to attempt to exploit CVE-2022-0847 (dirtypipe) on a target when using pwncat.
